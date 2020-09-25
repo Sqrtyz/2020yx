@@ -89,14 +89,14 @@ int main() {
 
 ### 烷烃计数代码
 
-时间复杂度 $O(n^2)$，可处理 $n \leq 5000$ 的数据。
+时间复杂度 $O(n^3)$，可处理 $n \leq 500$ 的数据。
 
 ```cpp
 #include <iostream>
 #include <cstring>
 #include <cstdio>
 
-#define Maxn 5010
+#define Maxn 510
 #define LL long long
 
 using namespace std;
@@ -117,7 +117,7 @@ inline int read() {
     return x * f;
 }
 
-LL f[Maxn][5];
+LL n, m, f[Maxn];
 
 LL Pow(LL a, LL b) {
     LL ans = 1, base = a;
@@ -131,27 +131,41 @@ LL Pow(LL a, LL b) {
 
 LL inv2 = Pow(2, MOD - 2), inv6 = Pow(6, MOD - 2), inv24 = Pow(24, MOD - 2);
 
-LL C(LL a, LL b) {
-    LL ret;
-    if(b == 1) ret = a;
-    if(b == 2) ret = a * (a - 1) % MOD * inv2 % MOD;
-    if(b == 3) ret = a * (a - 1) % MOD * (a - 2) % MOD * inv6 % MOD;
-    if(b == 4) ret = a * (a - 1) % MOD * (a - 2) % MOD * (a - 3) % MOD * inv24 % MOD;
-    return ret;
+LL calc() {
+	LL ans = 0;
+	for(int i = 0; i <= m; ++i)
+		for(int j = i; j <= m; ++j)
+			for(int k = j; k <= m; ++k) {
+				int l = n - 1 - i - j - k; if(l > m || l < k) continue;
+				if(i < j  && j < k  && k < l ) ans += f[i] * f[j] % MOD * f[k] % MOD * f[l] % MOD;
+				if(i == j && j < k  && k < l ) ans += f[i] * (f[i] + 1) % MOD * inv2 % MOD * f[k] % MOD * f[l] % MOD;
+				if(i < j  && j == k && k < l ) ans += f[j] * (f[j] + 1) % MOD * inv2 % MOD * f[i] % MOD * f[l] % MOD;
+				if(i < j  && j < k  && k == l) ans += f[k] * (f[k] + 1) % MOD * inv2 % MOD * f[i] % MOD * f[j] % MOD;
+				if(i == j && j == k && k < l ) ans += f[i] * (f[i] + 1) % MOD * (f[i] + 2) % MOD * inv6 % MOD * f[l] % MOD;
+				if(i < j  && j == k && k == l) ans += f[l] * (f[l] + 1) % MOD * (f[l] + 2) % MOD * inv6 % MOD * f[i] % MOD; 
+				if(i == j && j <  k && k == l) ans += f[i] * (f[i] + 1) % MOD * inv2 % MOD * f[k] % MOD * (f[k] + 1) % MOD * inv2 % MOD; 
+				if(i == j && j == k && k == l) ans += f[i] * (f[i] + 1) % MOD * (f[i] + 2) % MOD * (f[i] + 3) % MOD * inv24 % MOD;
+				ans %= MOD;
+			}
+	return ans;
 }
 
 int main() {
-    int n = read();
-    f[1][0] = 1;
-    for(int s = 1; s <= (n - 1) / 2; ++s)
-        for(int i = n; i >= 2; --i)
-            for(int j = 1; j <= 4; ++j)
-                for(int k = 1; s * k < i && k <= j; ++k) {
-                    f[i][j] += f[i - s * k][j - k] * C(k - 1 + f[s][0] + f[s][1] + f[s][2] + f[s][3], k) % MOD;
-                    f[i][j] %= MOD;
-                }
-    LL ans = f[n][0] + f[n][1] + f[n][2] + f[n][3] + f[n][4];
-    if(!(n & 1)) ans += C(f[n / 2][0] + f[n / 2][1] + f[n / 2][2] + f[n / 2][3] + 1, 2);
+    n = read(), m = (n - 1) / 2;
+    f[0] = 1, f[1] = 1;
+    for(int i = 2; i <= n / 2; ++i) {
+        for(int j = 0; j <= n / 2; ++j)
+            for(int k = j; k + j <= n / 2; ++k) { // j <= k <= l
+                int l = i - 1 - j - k; if(l < k) break;
+                if(j < k && k < l) f[i] += f[j] * f[k] % MOD * f[l] % MOD;
+                else if(j != k && k == l) f[i] += f[j] * f[k] % MOD * (f[k] + 1) % MOD * inv2 % MOD;
+                else if(j == k && k != l) f[i] += f[l] * f[k] % MOD * (f[k] + 1) % MOD * inv2 % MOD;
+                else if(j == k && k == l) f[i] += (f[j] + 2) * (f[j] + 1) % MOD * f[j] % MOD * inv6 % MOD;
+                f[i] %= MOD;
+            }
+    }
+    LL ans = calc();
+    if(!(n & 1)) ans += f[n / 2] * (f[n / 2] + 1) % MOD * inv2 % MOD;
     cout << ans % MOD << endl;
     return 0;
 }
